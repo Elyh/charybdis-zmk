@@ -1,3 +1,5 @@
+name: zmk-keyboard-charybdis
+
 build:
   settings:
     board_root: .
