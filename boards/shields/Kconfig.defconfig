@@ -1,1 +1,13 @@
+if SHIELD_CHARYBDIS_LEFT
 
+config ZMK_KEYBOARD_NAME
+    default "Charybdis Wireless"
+
+endif
+
+if SHIELD_CHARYBDIS_RIGHT
+
+config ZMK_KEYBOARD_NAME
+    default "Charybdis Wireless"
+
+endif
