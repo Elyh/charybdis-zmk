@@ -10,3 +10,6 @@
         , <&pro_micro 19 GPIO_ACTIVE_HIGH>
         ;
 };
+&trackball_listener {
+    status = "okay";
+};
