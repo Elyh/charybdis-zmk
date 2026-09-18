@@ -2,6 +2,19 @@
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include <zephyr/dt-bindings/pinctrl/nrf-pinctrl.h>
 
+/ {
+    chosen {
+        zephyr,console = &cdc_acm_uart;
+    };
+};
+
+&usbd {
+    status = "okay";
+
+    cdc_acm_uart: cdc_acm_uart {
+        compatible = "zephyr,cdc-acm-uart";
+    };
+};
 &pinctrl {
     spi0_default: spi0_default {
         group1 {
