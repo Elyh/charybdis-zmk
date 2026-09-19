@@ -1,6 +1,11 @@
 # Charybdis trackball investigation — 19 September 2026
 
-Status: source-audited changes, NOT compiled or hardware-tested. No UF2 is supplied.
+Status: all six firmware variants compiled successfully in GitHub Actions.
+Hardware testing remains pending.
+Tested firmware commit: 41474924a9ad5ad41009e21cae516432c367b89b.
+Verified build: https://github.com/Elyh/charybdis-zmk/actions/runs/35439718596
+Download its `firmware` artifact; first flash only `charybdis-right-USB-TEST.uf2`.
+Later documentation-only commits do not change these firmware binaries.
 Baseline: Elyh/charybdis-zmk commit 3d78a026757e05e56a39781968860f15844ee0fb.
 Branch: troubleshoot/trackball-usb-isolation.
 
@@ -49,8 +54,8 @@ suggestions are superseded. No rewiring is requested for this test.
   use ZMK's USB logging snippet so a serial console is actually configured.
 - Select board revision 2.0.0 explicitly (the existing default).
 - Pin ZMK, the reusable workflow, and the sensor driver to the audited commits.
-  These are current inspected revisions, not claimed to be the previous build's
-  exact dependency versions. Imported dependencies and build container remain
+  The previous build logs subsequently confirmed these are the same ZMK and
+  sensor-driver revisions it used. Imported dependencies and build container remain
   upstream-managed, so this is not a fully frozen toolchain.
 
 ## Build and verify BEFORE flashing
@@ -114,12 +119,25 @@ PMW3610 init/report code, nice!nano GPIO mapping, and Zephyr snippet support and
 extra-overlay precedence. Parsed YAML; checked snippet paths, matrix uniqueness,
 binding counts, sensor/matrix pin separation, and git whitespace errors.
 
-No Zephyr build or UF2 generation was performed: west, CMake/Ninja and the ARM
-Zephyr toolchain are absent. Read-only Git access works, but a dry-run push failed
-because GitHub credentials are unavailable. Install/connect GitHub with access to
-Elyh/charybdis-zmk to allow publishing and build-run investigation. Until a build
-passes and the above physical test is completed, this is a diagnostic fix candidate,
-not a claim that the keyboard is repaired.
+GitHub Actions run 35439718596 completed successfully for all six variants.
+The generated USB-test configuration was checked: USB, pointing, input listener,
+PMW3610 and USB/debug logging are enabled; split, BLE and input-split are not.
+The generated devicetree confirms a direct sensor listener, disabled split input,
+restored pins, and four synthetic pointer bindings. The USB-test UF2 is 177152
+bytes according to its build log. Normal left/right configurations preserve their
+central/peripheral roles; the right logging variant enables sensor debug output.
+
+The prior build 35435098920 also confirms the diagnosis: right split was enabled,
+USB HID was disabled by dependencies, and the requested sensor debug option did
+not take effect because logging was not enabled. The earlier initialization logs
+must therefore be associated with their own diagnostic build, not assumed to come
+from this latest default build.
+
+Nonfatal upstream warnings remain for deprecated KSCAN, USB HID being unavailable
+on ordinary split peripherals, and the USB-only test's unused settings backend.
+None prevented compilation. No claim of hardware repair is made until the test
+above is completed. GitHub access is now connected and the diagnostic branch is
+published in draft PR https://github.com/Elyh/charybdis-zmk/pull/1 .
 
 ## Source references
 
