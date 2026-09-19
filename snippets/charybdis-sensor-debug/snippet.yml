@@ -1,0 +1,3 @@
+name: charybdis-sensor-debug
+append:
+  EXTRA_CONF_FILE: charybdis-sensor-debug.conf
