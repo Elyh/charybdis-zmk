@@ -1,0 +1,7 @@
+if(CONFIG_CHARYBDIS_SENSOR_PROBE)
+  if(NOT DEFINED ZEPHYR_ZMK_PMW3610_DRIVER_MODULE_DIR)
+    message(FATAL_ERROR "The pinned zmk-pmw3610-driver module is required")
+  endif()
+  target_sources(app PRIVATE src/sensor_probe.c)
+  target_include_directories(app PRIVATE ${ZEPHYR_ZMK_PMW3610_DRIVER_MODULE_DIR}/src)
+endif()

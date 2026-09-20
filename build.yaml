@@ -16,6 +16,10 @@ include:
     artifact-name: charybdis-left-split-LOG
   - board: nice_nano@2.0.0//zmk
     shield: charybdis_right
+    snippet: zmk-usb-logging charybdis-usb-test charybdis-sensor-probe
+    artifact-name: charybdis-right-USB-DIAG2
+  - board: nice_nano@2.0.0//zmk
+    shield: charybdis_right
     snippet: zmk-usb-logging charybdis-sensor-debug
     artifact-name: charybdis-right-split-LOG
   - board: nice_nano@2.0.0//zmk

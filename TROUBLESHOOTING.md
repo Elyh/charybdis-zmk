@@ -1,7 +1,9 @@
 # Charybdis trackball investigation — 19 September 2026
 
-Status: all six firmware variants compiled successfully in GitHub Actions.
-Hardware testing remains pending.
+Baseline USB test: all six original variants compiled successfully in GitHub Actions.
+Hardware result: synthetic 6/7/8/9 pointer movement works; the ball does not.
+The 20-second serial capture contained only matrix startup messages.
+See DIAG2 below for the next diagnostic; baseline build link below is historical.
 Tested firmware commit: 41474924a9ad5ad41009e21cae516432c367b89b.
 Verified build: https://github.com/Elyh/charybdis-zmk/actions/runs/35439718596
 Download its `firmware` artifact; first flash only `charybdis-right-USB-TEST.uf2`.
@@ -145,3 +147,46 @@ published in draft PR https://github.com/Elyh/charybdis-zmk/pull/1 .
 - https://github.com/zmkfirmware/zmk/blob/9ebbeff0a8b69a42f14aec022cdf16c7a107b9e0/app/src/pointing/Kconfig
 - https://github.com/zmkfirmware/zmk/blob/9ebbeff0a8b69a42f14aec022cdf16c7a107b9e0/app/Kconfig
 - https://github.com/badjeff/zmk-pmw3610-driver/blob/e970029b42f33613ca8f05baf311dc733cd5a390/src/pmw3610.c
+
+## DIAG2: persistent status and scheduled sensor reads
+
+Use the successful build for the commit that adds `src/sensor_probe.c`, and flash
+only `charybdis-right-USB-DIAG2.uf2` on the right half. Left stays off; wiring stays
+unchanged. The original USB test remains available for comparison.
+
+Run the same 20-second PowerShell capture and move the ball throughout. DIAG2 waits
+for serial DTR and repeats two status lines each second. For the first 10 seconds
+it observes normal IRQ operation. It then supplements IRQ handling by submitting
+the existing driver's own motion-read work every ~20 ms while the serial port is
+open. This is an isolation test, not a recommended permanent polling fix.
+
+It suppresses ordinary log traffic and sends its own `printk` status directly to
+the USB console, avoiding the deferred log queue. A dedicated reporting thread
+can continue even if the system workqueue stops. All sensor state snapshots and
+read-only product-ID transactions run on the driver's system workqueue. The driver
+itself, sensor wiring, SPI rate, and initialization sequence are unchanged.
+
+Status interpretation:
+
+- `device=1` means the Zephyr device initialized; `ready=1 step=4` separately means
+  the driver's asynchronous sensor initialization completed.
+- `init_err` is the driver's initialization error, not a general motion-read error.
+- `id_rc=0 id=0x3e` is a successful expected product-ID read. `id_rc=-999` means no
+  completed diagnostic ID sample yet, not a sensor error code.
+- `work` should increase; a fixed value with repeating lines indicates workqueue
+  progress needs investigation. It is not proof of a hardware failure.
+- `motion_raw=0` samples the active-low MOTION pin asserted; `1` samples it high.
+  Individual samples can miss pulses. `irq` is a cumulative callback count, and
+  `irq_monitor=0` means the monitor callback was installed successfully.
+- `polls` counts accepted work submissions, not guaranteed completed SPI reads.
+  `submit` records the latest submission result; coalesced requests are possible.
+- `events` counts input events from the physical trackball device only. Synthetic
+  movement keys do not increase it. `last_xy` stores last reported axis values,
+  not current velocity, so it may retain nonzero values after movement stops.
+- Motion appearing only during POLL is evidence to investigate IRQ signalling or
+  servicing. No events in either mode does not alone prove optical failure.
+
+The diagnostic uses private driver structs from the pinned upstream revision.
+Re-audit this adapter before changing the driver version. It is compiled only
+when CONFIG_CHARYBDIS_SENSOR_PROBE=y, restricted to the standalone USB diagnostic;
+normal left/right and original USB-test firmware do not include this code.

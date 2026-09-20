@@ -1,0 +1,7 @@
+config CHARYBDIS_SENSOR_PROBE
+    bool "Charybdis USB sensor diagnostic"
+    depends on PMW3610_ALT && ZMK_USB && ZMK_USB_LOGGING && !ZMK_SPLIT
+    default n
+    help
+      Diagnostic-only status reporting and scheduled motion reads. Uses private
+      structures from the exact PMW3610 revision pinned in config/west.yml.
