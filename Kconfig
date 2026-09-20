@@ -5,3 +5,9 @@ config CHARYBDIS_SENSOR_PROBE
     help
       Diagnostic-only status reporting and scheduled motion reads. Uses private
       structures from the exact PMW3610 revision pinned in config/west.yml.
+
+config CHARYBDIS_ORIENTATION
+    bool "Correct Charybdis diagonal trackball orientation"
+    default y
+    depends on ZMK_POINTING && ZMK_SPLIT_ROLE_CENTRAL
+    depends on DT_HAS_ZMK_CHARYBDIS_ORIENTATION_ENABLED

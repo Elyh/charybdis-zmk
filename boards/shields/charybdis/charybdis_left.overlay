@@ -1,5 +1,12 @@
 #include "charybdis.dtsi"
 
+/ {
+    trackball_oriented: trackball_oriented {
+        compatible = "zmk,charybdis-orientation";
+        device = <&trackball_split>;
+    };
+};
+
 &kscan0 {
    col-gpios
         = <&pro_micro 8  GPIO_ACTIVE_HIGH>
@@ -12,4 +19,5 @@
 };
 &trackball_listener {
     status = "okay";
+    device = <&trackball_oriented>;
 };

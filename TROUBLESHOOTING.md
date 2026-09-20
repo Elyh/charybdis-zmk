@@ -190,3 +190,24 @@ The diagnostic uses private driver structs from the pinned upstream revision.
 Re-audit this adapter before changing the driver version. It is compiled only
 when CONFIG_CHARYBDIS_SENSOR_PROBE=y, restricted to the standalone USB diagnostic;
 normal left/right and original USB-test firmware do not include this code.
+
+## Hardware repair and orientation correction
+
+The user removed a small solder bridge at the sensor and lightly sanded the ball
+with 1200-grit paper. Tracking now works with PowerShell closed, confirming that
+scheduled diagnostic polling is not required. Because both changes were made
+together, their individual contributions have not been established.
+
+The user reports: ball towards them -> cursor up-left; ball right -> cursor
+up-right. This is a reflected diagonal coordinate mapping, not pure rotation.
+The normal left-central build now converts complete X/Y frames using
+`x_out=(x-y)/sqrt(2)` and `y_out=(-x-y)/sqrt(2)`, preserving fractional counts.
+This maps the reported right direction to screen-right and towards-user to
+down. A nominal 45-degree mounting angle is assumed; real-world angle/speed
+fine-tuning remains a user test. Keyboard bindings and right sensor firmware
+are unchanged. USB-TEST and DIAG2 keep their original uncorrected mapping.
+
+Flash the normal left build from the successful orientation commit's run. The
+normal right split firmware from the previous successful run can be retained;
+if the right is still on DIAG2, restore its normal right-split firmware too.
+Test both halves with left USB first, then test the preferred Bluetooth endpoint.
