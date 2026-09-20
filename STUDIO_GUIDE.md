@@ -84,3 +84,11 @@ Confirm typing and number keys, the Studio connection/unlock, all three clicks,
 click-and-drag with a pause longer than 1.5 seconds, scrolling, precision, normal
 pointer direction, and both halves over Bluetooth. Runtime feel and actual USB
 connection need testing on the physical keyboard; a CI build cannot prove them.
+
+## Studio unlock correction
+
+The initial Studio build compiled the Settings U binding as `&none` because
+`CONFIG_ZMK_STUDIO` is not available during devicetree preprocessing. The normal
+left build now adds the `charybdis-studio` snippet with an explicit preprocessing
+flag. Verify the generated Settings bindings contain `&studio_unlock` at position
+19. Only the left half needs reflashing for this correction.

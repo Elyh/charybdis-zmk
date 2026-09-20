@@ -1,0 +1,3 @@
+name: charybdis-studio
+append:
+  DTS_EXTRA_CPPFLAGS: -DCHARYBDIS_STUDIO

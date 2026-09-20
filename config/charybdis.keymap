@@ -11,7 +11,8 @@
 #define NAV 4
 #define SETTINGS 5
 
-#if defined(CONFIG_ZMK_STUDIO)
+// Devicetree is processed before Kconfig; use the explicit Studio snippet flag.
+#if defined(CHARYBDIS_STUDIO)
 #define STUDIO_UNLOCK &studio_unlock
 #else
 #define STUDIO_UNLOCK &none
