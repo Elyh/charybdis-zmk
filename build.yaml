@@ -2,6 +2,11 @@
 include:
   - board: nice_nano@2.0.0//zmk
     shield: charybdis_left
+    snippet: studio-rpc-usb-uart charybdis-studio charybdis-overlay
+    cmake-args: -DCONFIG_ZMK_STUDIO=y
+    artifact-name: charybdis-left-OVERLAY
+  - board: nice_nano@2.0.0//zmk
+    shield: charybdis_left
     snippet: studio-rpc-usb-uart charybdis-studio
     cmake-args: -DCONFIG_ZMK_STUDIO=y
     artifact-name: charybdis-left-split

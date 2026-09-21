@@ -9,3 +9,7 @@ endif()
 if(CONFIG_CHARYBDIS_ORIENTATION)
   target_sources(app PRIVATE src/trackball_orientation.c)
 endif()
+
+if(CONFIG_CHARYBDIS_OVERLAY)
+  target_sources(app PRIVATE src/overlay.c)
+endif()

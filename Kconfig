@@ -11,3 +11,8 @@ config CHARYBDIS_ORIENTATION
     default y
     depends on ZMK_POINTING && ZMK_SPLIT_ROLE_CENTRAL
     depends on DT_HAS_ZMK_CHARYBDIS_ORIENTATION_ENABLED
+
+config CHARYBDIS_OVERLAY
+    bool "Read-only USB keymap overlay telemetry"
+    default n
+    depends on ZMK_STUDIO && ZMK_SPLIT_ROLE_CENTRAL && USB_CDC_ACM
