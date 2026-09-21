@@ -24,4 +24,27 @@ class Tests(unittest.TestCase):
         self.assertEqual(s.layout['layers'][0]['bindings'][0][1],0x70005)
     def test_hold_and_tap(self):
         self.assertEqual(label(['layer_tap',6,0x7002b],{6:'Number Pad'})[0],'Tap Tab\nHold Number Pad')
+
+# Exercise real Windows widgets and native no-activation flags without hardware.
+import sys
+import tempfile
+from pathlib import Path
+from unittest.mock import patch
+import overlay
+@unittest.skipUnless(sys.platform == 'win32', 'Windows GUI integration')
+class WindowsGui(unittest.TestCase):
+    def test_window_and_layer_updates(self):
+        with tempfile.TemporaryDirectory() as temp, patch.object(overlay,'APP',Path(temp)), patch.object(overlay.Reader,'start'):
+            app=overlay.App()
+            try:
+                app.root.update()
+                self.assertIsNotNone(app.map)
+                app.state={'layers':17,'default':0,'mods':2}
+                app.show();app.root.update()
+                self.assertGreater(len(app.canvas.find_all()),56)
+                app.events.put(('state',{'layers':65,'default':0,'mods':0}))
+                app.tick();app.root.update()
+                self.assertEqual(app.state['layers'],65)
+            finally:app.quit()
+
 if __name__=='__main__':unittest.main()
