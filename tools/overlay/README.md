@@ -34,8 +34,12 @@ presses and does not record typing. No cloud connection or account is required.
   when the app cannot interpret them. Macro bodies are not expanded.
 - Cached layout preview when disconnected. This is explicitly labelled offline;
   live state needs the optional firmware and USB. Bluetooth-only use is not supported.
-- Automatic hiding after a layer/modifier change. The app does not inspect normal
-  typing, so ordinary key presses do not restart the hide timer.
+- Automatic hiding after inactivity. With Keep visible while typing enabled, every
+  Windows keyboard press (including repeats) restarts the timer and brings a hidden
+  overlay back. This applies to all keyboards, only while Charybdis is connected.
+  The listener keeps an activity flag only; it never reads or records key codes.
+- Transparent background removes the rectangle behind the keys, while keeping
+  key tiles and labels visible. Opacity still applies to the visible keys.
 
 The firmware checks modifiers and layer state every 25 ms only while this serial
 interface is open; it checks for keymap edits once a second. Transmission stops

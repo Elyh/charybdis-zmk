@@ -45,6 +45,27 @@ class WindowsGui(unittest.TestCase):
                 app.events.put(('state',{'layers':65,'default':0,'mods':0}))
                 app.tick();app.root.update()
                 self.assertEqual(app.state['layers'],65)
+                self.assertIsNone(app.activity.error)
+                app.settings['transparent_background']=True
+                app.show();app.root.update()
+                self.assertEqual(app.overlay.attributes('-transparentcolor').lower(),'#ff00ff')
+                app.settings['transparent_background']=False
+                app.show()
+                self.assertEqual(app.overlay.attributes('-transparentcolor'),'')
+                app.online=True;app.hide_at=1
+                app.typing_activity()
+                self.assertGreater(app.hide_at,overlay.time.monotonic())
+                app.overlay.withdraw();app.typing_activity();app.root.update()
+                self.assertNotEqual(app.overlay.state(),'withdrawn')
+                app.settings['refresh_typing']=False;app.hide_at=123
+                app.typing_activity();self.assertEqual(app.hide_at,123)
+                app.settings['refresh_typing']=True;app.settings['duration']=0
+                app.typing_activity();self.assertEqual(app.hide_at,0)
+                app.activity.consume()
+                # F24 exercises the native hook without typing into another app.
+                overlay.ctypes.windll.user32.keybd_event(0x87,0,0,0)
+                overlay.ctypes.windll.user32.keybd_event(0x87,0,2,0)
+                self.assertTrue(app.activity.pressed.wait(2), 'Native key press was not detected')
             finally:app.quit()
 
 if __name__=='__main__':unittest.main()

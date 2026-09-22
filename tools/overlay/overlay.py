@@ -125,13 +125,55 @@ class Reader(threading.Thread):
             if not found:self.events.put(('offline','Waiting for overlay firmware over USB…'))
             self.stop.wait(2)
 
+class KeyboardActivity:
+    """Keep only an activity flag. Never read or store the key-code payload."""
+    def __init__(self):
+        self.pressed=threading.Event();self.ready=threading.Event();self.error=None
+        self.thread_id=None;self.thread=None
+        if sys.platform=='win32':
+            self.thread=threading.Thread(target=self.run,daemon=True);self.thread.start()
+            if not self.ready.wait(3):self.error='Keyboard activity listener did not start'
+    def run(self):
+        from ctypes import wintypes as w
+        u=ctypes.WinDLL('user32',use_last_error=True);k=ctypes.WinDLL('kernel32',use_last_error=True)
+        cbtype=ctypes.WINFUNCTYPE(ctypes.c_ssize_t,ctypes.c_int,w.WPARAM,w.LPARAM)
+        u.SetWindowsHookExW.argtypes=[ctypes.c_int,cbtype,w.HINSTANCE,w.DWORD];u.SetWindowsHookExW.restype=w.HANDLE
+        u.CallNextHookEx.argtypes=[w.HANDLE,ctypes.c_int,w.WPARAM,w.LPARAM];u.CallNextHookEx.restype=ctypes.c_ssize_t
+        u.UnhookWindowsHookEx.argtypes=[w.HANDLE];u.UnhookWindowsHookEx.restype=w.BOOL
+        u.GetMessageW.argtypes=[ctypes.POINTER(w.MSG),w.HWND,w.UINT,w.UINT];u.GetMessageW.restype=w.BOOL
+        k.GetModuleHandleW.argtypes=[w.LPCWSTR];k.GetModuleHandleW.restype=w.HMODULE
+        k.GetCurrentThreadId.restype=w.DWORD
+        def callback(code,message,payload):
+            if code==0 and message in (0x100,0x104):self.pressed.set()
+            return u.CallNextHookEx(None,code,message,payload)
+        self.callback=cbtype(callback)
+        hook=u.SetWindowsHookExW(13,self.callback,k.GetModuleHandleW(None),0)
+        if not hook:
+            self.error='Keyboard activity unavailable (Windows error %s)' % ctypes.get_last_error()
+            self.ready.set();return
+        self.thread_id=k.GetCurrentThreadId()
+        # Ensure this thread has a message queue before advertising readiness.
+        message=w.MSG();u.PeekMessageW(ctypes.byref(message),None,0,0,0)
+        self.ready.set()
+        try:
+            while u.GetMessageW(ctypes.byref(message),None,0,0)>0:
+                u.TranslateMessage(ctypes.byref(message));u.DispatchMessageW(ctypes.byref(message))
+        finally:u.UnhookWindowsHookEx(hook)
+    def consume(self):
+        if not self.pressed.is_set():return False
+        self.pressed.clear();return True
+    def close(self):
+        if self.thread_id:
+            ctypes.windll.user32.PostThreadMessageW(self.thread_id,0x12,0,0)
+            if self.thread:self.thread.join(timeout=1)
+
 class App:
     def __init__(self):
         APP.mkdir(parents=True,exist_ok=True)
-        self.settings={'opacity':85,'width':1050,'duration':5,'palette':'Midnight','x':40,'y':650,'clickthrough':True}
+        self.settings={'opacity':85,'width':1050,'duration':5,'palette':'Midnight','x':40,'y':650,'clickthrough':True,'transparent_background':False,'refresh_typing':True}
         try:self.settings.update(json.loads((APP/'settings.json').read_text()))
         except (OSError,ValueError):pass
-        self.root=tk.Tk();self.root.title('Charybdis Overlay');self.root.geometry('510x510')
+        self.root=tk.Tk();self.root.title('Charybdis Overlay');self.root.geometry('540x610')
         self.events=queue.Queue();self.stop=threading.Event();self.map=None;self.state={'layers':1,'default':0,'mods':0};self.signature=None;self.hide_at=0;self.online=False;self.last_caps=False
         self.overlay=tk.Toplevel(self.root);self.overlay.withdraw();self.overlay.overrideredirect(True);self.overlay.attributes('-topmost',True)
         self.canvas=tk.Canvas(self.overlay,highlightthickness=0);self.canvas.pack(fill='both',expand=True)
@@ -150,9 +192,14 @@ class App:
             ttk.Label(row,text=k.upper()+' position').pack(side='left');v=tk.IntVar(value=self.settings[k]);self.vars[k]=v
             sp=ttk.Spinbox(row,from_=-10000,to=10000,width=7,textvariable=v,command=lambda k=k:self.changed(k));sp.pack(side='left',padx=5);sp.bind('<Return>',lambda _,k=k:self.changed(k))
         self.vars['clickthrough']=tk.BooleanVar(value=self.settings['clickthrough']);ttk.Checkbutton(box,text='Click through overlay (Windows)',variable=self.vars['clickthrough'],command=lambda:self.changed('clickthrough')).pack(anchor='w',pady=5)
+        for key,title in [('transparent_background','Transparent background (keep the keys visible)'),('refresh_typing','Keep visible while typing (all keyboards)')]:
+            self.vars[key]=tk.BooleanVar(value=self.settings[key])
+            ttk.Checkbutton(box,text=title,variable=self.vars[key],command=lambda k=key:self.changed(k)).pack(anchor='w',pady=4)
         row=ttk.Frame(box);row.pack(fill='x',pady=7);ttk.Button(row,text='Show overlay',command=self.show).pack(side='left');ttk.Button(row,text='Hide overlay',command=self.overlay.withdraw).pack(side='left',padx=8)
         self.preview=tk.StringVar();self.preview_box=ttk.Combobox(row,textvariable=self.preview,state='readonly',width=15);self.preview_box.pack(side='right');self.preview_box.bind('<<ComboboxSelected>>',self.preview_layer)
         ttk.Label(box,text='USB required. Studio can stay open.\nSymbol labels use US English; Caps Lock follows Windows.\nClosing this window quits the overlay.',foreground='#526675').pack(anchor='w',pady=6)
+        self.activity=KeyboardActivity()
+        if self.activity.error:ttk.Label(box,text=self.activity.error,foreground='#b04030').pack(anchor='w')
         self.root.protocol('WM_DELETE_WINDOW',self.quit)
         cache=APP/'keymap.json';baseline=Path(getattr(sys,'_MEIPASS',Path(__file__).parent))/'baseline.json'
         try:self.map=json.loads((cache if cache.exists() else baseline).read_text());self.update_layers()
@@ -181,6 +228,10 @@ class App:
         if not self.map:return
         self.draw();self.overlay.update_idletasks();self.noactivate();self.overlay.deiconify();self.noactivate()
         self.hide_at=time.monotonic()+self.settings['duration'] if self.settings['duration'] else 0
+    def typing_activity(self):
+        if not self.settings['refresh_typing'] or not self.online or not self.map:return
+        if self.overlay.state()=='withdrawn':self.show()
+        else:self.hide_at=time.monotonic()+self.settings['duration'] if self.settings['duration'] else 0
     def draw(self):
         palette=PALETTES.get(self.settings['palette'],PALETTES['Midnight']);bg,fg,key,layer,special,mouse=palette
         width=max(650,min(1600,self.settings['width']));geo=self.map['keys'];extent=max(k[0]+k[2] for k in geo);height_units=max(k[1]+k[3] for k in geo);scale=(width-24)/extent;height=int(height_units*scale)+60
@@ -188,7 +239,9 @@ class App:
         # Keep the initial position visible on smaller screens.
         y=min(y,max(0,self.root.winfo_screenheight()-height))
         self.overlay.geometry(f'{width}x{height}{x:+d}{y:+d}');self.overlay.attributes('-alpha',max(.2,min(1,self.settings['opacity']/100)))
-        self.canvas.configure(width=width,height=height,bg=bg);self.canvas.delete('all')
+        backdrop='#ff00ff' if self.settings['transparent_background'] and sys.platform=='win32' else bg
+        if sys.platform=='win32':self.overlay.attributes('-transparentcolor',backdrop if self.settings['transparent_background'] else '')
+        self.canvas.configure(width=width,height=height,bg=backdrop);self.canvas.delete('all')
         ls=self.map['layers'];names={l['id']:l['name'] for l in ls};active=[l for l in ls if self.state['layers']&(1<<l['id']) or l['id']==self.state['default']]
         title=' + '.join(l['name'] for l in active) or 'Typing';mods=self.state['mods'];caps=self.caps()
         flags=[n for i,n in enumerate(MODS) if mods&(1<<i)];title+=('  |  '+' + '.join(flags)) if flags else '';title+='  |  CAPS' if caps else '';title+='  [preview / offline]' if not self.online else ''
@@ -215,9 +268,10 @@ class App:
         caps=self.caps()
         if caps!=self.last_caps:self.last_caps=caps;redraw=True
         if redraw:self.show()
+        if self.activity.consume():self.typing_activity()
         if self.hide_at and time.monotonic()>self.hide_at:self.overlay.withdraw();self.hide_at=0
         self.root.after(40,self.tick)
-    def quit(self):self.stop.set();self.root.destroy()
+    def quit(self):self.stop.set();self.activity.close();self.root.destroy()
     def run(self):self.root.mainloop()
 
 if __name__=='__main__':App().run()
