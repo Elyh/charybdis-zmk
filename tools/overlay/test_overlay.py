@@ -48,10 +48,10 @@ class WindowsGui(unittest.TestCase):
                 self.assertIsNone(app.activity.error)
                 app.settings['transparent_background']=True
                 app.show();app.root.update()
-                self.assertEqual(app.overlay.attributes('-transparentcolor').lower(),'#ff00ff')
+                self.assertEqual(str(app.overlay.attributes('-transparentcolor')).lower(),'#ff00ff')
                 app.settings['transparent_background']=False
                 app.show()
-                self.assertEqual(app.overlay.attributes('-transparentcolor'),'')
+                self.assertEqual(str(app.overlay.attributes('-transparentcolor')),'')
                 app.online=True;app.hide_at=1
                 app.typing_activity()
                 self.assertGreater(app.hide_at,overlay.time.monotonic())
