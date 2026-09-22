@@ -1,4 +1,13 @@
 #include "charybdis.dtsi"
+#include <input/processors.dtsi>
+#include <dt-bindings/zmk/input_transform.h>
+
+/ {
+    trackball_oriented: trackball_oriented {
+        compatible = "zmk,charybdis-orientation";
+        device = <&trackball_split>;
+    };
+};
 
 &kscan0 {
    col-gpios
@@ -12,4 +21,35 @@
 };
 &trackball_listener {
     status = "okay";
+    device = <&trackball_oriented>;
+};
+
+// Input processing is central-only, after the verified orientation correction.
+/ {
+    charybdis_auto_mouse: charybdis_auto_mouse {
+        compatible = "zmk,input-processor-temp-layer";
+        #input-processor-cells = <2>;
+        require-prior-idle-ms = <250>;
+        // Mouse thumbs and main Shift/Ctrl must not cancel mouse mode.
+        excluded-positions = <24 36 47 48 49 50 51 52>;
+    };
+};
+
+&trackball_listener {
+    input-processors = <&charybdis_auto_mouse 1 1500>;
+    // Suppress automatic mouse activation while deliberately using Nav/Settings.
+    navigation {
+        layers = <4 5>;
+        input-processors = <&zip_xy_scaler 1 1>;
+    };
+    scroll {
+        layers = <2>;
+        input-processors = <&zip_xy_to_scroll_mapper>,
+                           <&zip_scroll_scaler 1 12>,
+                           <&zip_scroll_transform INPUT_TRANSFORM_Y_INVERT>;
+    };
+    precision {
+        layers = <3>;
+        input-processors = <&zip_xy_scaler 1 4>;
+    };
 };

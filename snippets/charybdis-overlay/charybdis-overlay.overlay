@@ -1,0 +1,6 @@
+&zephyr_udc0 {
+    charybdis_overlay_uart: charybdis_overlay_uart {
+        compatible = "zephyr,cdc-acm-uart";
+        label = "Charybdis Overlay";
+    };
+};

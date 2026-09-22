@@ -1,0 +1,4 @@
+name: charybdis-overlay
+append:
+  EXTRA_CONF_FILE: charybdis-overlay.conf
+  EXTRA_DTC_OVERLAY_FILE: charybdis-overlay.overlay

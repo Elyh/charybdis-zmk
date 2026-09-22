@@ -1,0 +1,18 @@
+config CHARYBDIS_SENSOR_PROBE
+    bool "Charybdis USB sensor diagnostic"
+    depends on PMW3610_ALT && ZMK_USB && ZMK_USB_LOGGING && !ZMK_SPLIT
+    default n
+    help
+      Diagnostic-only status reporting and scheduled motion reads. Uses private
+      structures from the exact PMW3610 revision pinned in config/west.yml.
+
+config CHARYBDIS_ORIENTATION
+    bool "Correct Charybdis diagonal trackball orientation"
+    default y
+    depends on ZMK_POINTING && ZMK_SPLIT_ROLE_CENTRAL
+    depends on DT_HAS_ZMK_CHARYBDIS_ORIENTATION_ENABLED
+
+config CHARYBDIS_OVERLAY
+    bool "Read-only USB keymap overlay telemetry"
+    default n
+    depends on ZMK_STUDIO && ZMK_SPLIT_ROLE_CENTRAL && USB_CDC_ACM
