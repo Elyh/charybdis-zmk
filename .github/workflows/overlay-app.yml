@@ -1,0 +1,30 @@
+name: Build Windows overlay
+on:
+  push:
+    paths: ['tools/overlay/**', '.github/workflows/overlay-app.yml']
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install build dependencies
+        run: python -m pip install pyserial==3.5 pyinstaller==6.16.0
+      - name: Verify layer and stream handling
+        working-directory: tools/overlay
+        run: python -m unittest -v test_overlay.py
+      - name: Build portable app
+        working-directory: tools/overlay
+        run: python -m PyInstaller --noconfirm --clean --onedir --windowed --name CharybdisOverlay --add-data "baseline.json;." overlay.py
+      - name: Include instructions
+        shell: pwsh
+        run: Copy-Item tools/overlay/README.md tools/overlay/dist/CharybdisOverlay/README.md
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Charybdis-Overlay-Windows
+          path: tools/overlay/dist/CharybdisOverlay/

@@ -1,0 +1,8 @@
+description: Charybdis diagonal motion correction on the split central
+compatible: "zmk,charybdis-orientation"
+include: base.yaml
+properties:
+  device:
+    type: phandle
+    required: true
+    description: Source of relative X and Y input events
