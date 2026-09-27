@@ -30,8 +30,9 @@
         compatible = "zmk,input-processor-temp-layer";
         #input-processor-cells = <2>;
         require-prior-idle-ms = <250>;
-        // Mouse thumbs and main Shift/Ctrl must not cancel mouse mode.
-        excluded-positions = <24 36 47 48 49 50 51 52>;
+        // Left mouse thumbs, right Back/Forward thumbs (53/55), and main modifiers
+        // must not cancel mouse mode. Right upper-right thumb (54) still exits it.
+        excluded-positions = <24 36 47 48 49 50 51 52 53 55>;
     };
 };
 
